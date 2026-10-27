@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Tier Migration Scorer · Amex Premium Portfolio</title>
+<meta name="description" content="Score an American Express premium card customer and see the recommended tier migration and margin impact — entirely in the browser, no login or server.">
+<meta name="theme-color" content="#0B1F33">
+<meta property="og:title" content="Card Tier Migration Scorer · Amex Premium Portfolio">
+<meta property="og:description" content="Client-side card tier migration and margin optimization scorer running exported logistic-regression coefficients.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mlaharsh.github.io/amex-tier-migration/scorer.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://mlaharsh.github.io/amex-tier-migration/scorer.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1F33'/%3E%3Cpath d='M32 12l16 20-16 20-16-20z' fill='%238ED7D2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="scorer.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html" aria-label="Amex Card Migration home">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span>Amex Tier Migration</span>
+      <span class="brand-sub">Live scorer</span>
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="index.html">Overview</a>
+      <a href="#scorer">Single customer</a>
+      <a href="#threshold">Threshold lab</a>
+      <a href="#batch">Batch scoring</a>
+      <a class="nav-cta" href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Live · runs entirely in your browser</p>
+        <h1>Which card tier <span class="h1-accent">maximizes margin</span> for every customer?</h1>
+        <p class="hero-lead">
+          This is the fitted <strong>logistic-regression migration model</strong> from the Amex Premium Card
+          Tier Migration &amp; Margin Optimization project, exported to JavaScript with its exact preprocessing
+          parameters. Score a customer, test a migration policy, or score a CSV — <strong>no login and no
+          server round trip.</strong>
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#scorer">Score a customer <span aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="#batch">Batch score a CSV <span aria-hidden="true">→</span></a>
+        </div>
+        <p class="hero-note">
+          Exported from <strong>models/card_tier_model.joblib</strong> · threshold
+          <strong class="js-threshold">0.500</strong> · holdout ROC-AUC
+          <strong class="js-roc">0.000</strong>
+        </p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-panel">
+          <div class="hero-panel-top">
+            <p class="hero-panel-label">Holdout snapshot</p>
+            <span class="live-chip">Model live</span>
+          </div>
+          <div class="hero-metric">
+            <span class="hero-metric-value"><span class="js-flagged">—</span> <span style="font-size:0.42em;font-weight:600;letter-spacing:-0.01em;color:#9db9c5;">of <span class="js-holdout-n">—</span> flagged</span></span>
+            <span class="hero-metric-label">at the <span class="js-threshold">0.500</span> churn threshold</span>
+          </div>
+          <div class="hero-mini-grid">
+            <div class="hero-mini"><span>Alert rate</span><strong class="js-alert-rate">—</strong></div>
+            <div class="hero-mini"><span>Precision</span><strong class="js-precision">—</strong></div>
+            <div class="hero-mini"><span>Recall</span><strong class="js-recall">—</strong></div>
+            <div class="hero-mini"><span>F1</span><strong class="js-f1">—</strong></div>
+          </div>
+          <p class="hero-panel-foot">
+            Threshold metrics are replayed from the saved holdout evaluation. The scorer itself runs
+            client-side from exported coefficients.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="scorer">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">01 · Single-customer tier scorer</p>
+          <h2>Score the account. Choose the tier.</h2>
+        </div>
+        <p class="section-lead">
+          Every input updates the churn probability and tier recommendation immediately. The model uses
+          <strong>26 engineered features</strong> across spend, fees, risk, and engagement. The result is a
+          migration prioritisation signal, not a credit decision.
+        </p>
+      </div>
+
+      <div class="score-layout">
+        <form class="form-card" id="profileForm" novalidate>
+          <div class="card-head">
+            <div>
+              <h3>Customer profile</h3>
+              <p>26 model inputs · updates live</p>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn btn-secondary btn-small" type="button" id="exampleGold">Gold upsell example</button>
+              <button class="btn btn-secondary btn-small" type="button" id="examplePlatinum">Platinum retention example</button>
+              <button class="btn btn-secondary btn-small" type="button" id="exampleNoFee">No-fee high-spend example</button>
+              <button class="btn btn-quiet btn-small" type="button" id="resetForm">Reset</button>
+            </div>
+          </div>
+          <div class="form-body" id="formBody"></div>
+        </form>
+
+        <aside class="result-panel" aria-label="Live score result">
+          <article class="result-card" id="resultCard">
+            <div class="result-head">
+              <div class="result-kicker">
+                <span>Live prediction</span>
+                <time id="modelStamp">loading model</time>
+              </div>
+              <div class="probability-row">
+                <div>
+                  <p class="probability" id="probabilityValue">—<small>%</small></p>
+                  <p class="probability-label">estimated churn probability</p>
+                </div>
+                <span class="risk-badge" id="riskBadge">—</span>
+              </div>
+              <div class="decision" id="decisionBox">
+                <span id="decisionText">Loading the exported model…</span>
+              </div>
+            </div>
+
+            <div class="result-body">
+              <div class="error-box" id="resultError" role="alert" hidden></div>
+
+              <div class="result-section">
+                <h4 class="result-section-title">Tier recommendation <span>migration prioritisation</span></h4>
+                <div id="recommendationBox"></div>
+              </div>
+
+              <div class="result-section">
+                <h4 class="result-section-title">Expected annual margin by tier <span>fee + interchange + interest − costs − loss</span></h4>
+                <div id="marginList"></div>
+              </div>
+            </div>
+          </article>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tinted" id="threshold">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">02 · Migration policy</p>
+          <h2>Set the churn threshold. See who gets flagged.</h2>
+        </div>
+        <p class="section-lead">
+          A churn score becomes a campaign only after choosing a contact policy. The slider replays the
+          <strong>saved holdout predictions</strong>; it does not refit the model.
+        </p>
+      </div>
+
+      <div class="lab-card">
+        <div class="lab-grid">
+          <div class="lab-controls">
+            <h3>Churn threshold</h3>
+            <p>Customers at or above this score are flagged for tier migration outreach.</p>
+            <div class="threshold-readout">
+              <p class="threshold-value" id="thresholdValue">0.500</p>
+              <span class="threshold-chip">selected policy</span>
+            </div>
+            <label class="sr-only" for="thresholdSlider">Churn threshold</label>
+            <input class="slider" id="thresholdSlider" type="range" min="0.05" max="0.95" step="0.01" value="0.500">
+            <div class="slider-ticks" aria-hidden="true">
+              <span>0.05</span><span>0.25</span><span>0.50</span><span>0.75</span><span>0.95</span>
+            </div>
+            <p class="lab-hint" id="thresholdHint">
+              The selected threshold maximizes F1 on out-of-fold training predictions, then is evaluated once
+              on the holdout set.
+            </p>
+          </div>
+
+          <div class="lab-chart">
+            <div class="chart-head">
+              <p class="chart-title">Holdout trade-off</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-metrics">
+          <div class="lab-metric"><span>Contacts</span><strong id="labContacts">—</strong><small id="labAlertRate">—</small></div>
+          <div class="lab-metric"><span>Precision</span><strong id="labPrecision">—</strong></div>
+          <div class="lab-metric"><span>Recall</span><strong id="labRecall">—</strong></div>
+          <div class="lab-metric"><span>F1</span><strong id="labF1">—</strong></div>
+          <div class="lab-metric"><span>Alert rate</span><strong id="labAlertRate2">—</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="batch">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">03 · Batch scoring</p>
+          <h2>Work a portfolio, not a demo.</h2>
+        </div>
+        <p class="section-lead">
+          Upload the raw card portfolio schema, validate every row in the browser, and download a ranked
+          migration list. Files are processed in memory on this device.
+        </p>
+      </div>
+
+      <div class="batch-card">
+        <div class="batch-head">
+          <div>
+            <h3>Score a customer CSV</h3>
+            <p>
+              Required columns are the raw card portfolio fields; <code>customerID</code> is optional and
+              <code>Churn</code> is ignored if present. Missing IDs are generated and duplicate IDs are
+              rejected.
+            </p>
+          </div>
+          <div class="batch-actions">
+            <button class="btn btn-secondary btn-small" type="button" id="loadSample">Load sample</button>
+          </div>
+        </div>
+
+        <label class="dropzone" id="dropzone" for="fileInput">
+          <span class="dropzone-icon" aria-hidden="true">↑</span>
+          <span class="dropzone-copy">
+            <strong id="dropzoneTitle">Drop a CSV here or choose a file</strong>
+            <span>Processed locally · raw card portfolio schema</span>
+          </span>
+          <input id="fileInput" type="file" accept=".csv,text/csv">
+        </label>
+
+        <p class="batch-status" id="batchStatus">No file loaded. Load the sample list to try it.</p>
+
+        <div class="table-wrap" id="tableWrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Customer</th>
+                <th scope="col">Churn prob.</th>
+                <th scope="col">Risk tier</th>
+                <th scope="col">Current tier</th>
+                <th scope="col">Optimal tier</th>
+                <th scope="col">Margin lift /yr</th>
+                <th scope="col">Priority</th>
+              </tr>
+            </thead>
+            <tbody id="batchBody"></tbody>
+          </table>
+        </div>
+        <div class="batch-empty" id="batchEmpty">
+          <strong>Expected schema</strong><br>
+          customerID (optional), card_tier, tenure_months, annual_fee_usd, monthly_spend_usd,
+          annual_spend_usd, rewards_cost_usd, service_cost_usd, statement_balance_usd, utilization_pct,
+          delinquency_rate, credit_score, income_usd, age, gender, region, acquisition_channel,
+          has_premium_rewards, travel_spend_pct, dining_spend_pct, grocery_spend_pct,
+          digital_engagement_score, support_contacts_last_12m, complaint_flag
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tinted" id="method">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">04 · What this is</p>
+          <h2>The same model, exported.</h2>
+        </div>
+        <p class="section-lead">
+          The browser scorer is a client-side implementation of the trained pipeline, not a new model and
+          not a mock-up. The native Streamlit workbench remains the full reference implementation.
+        </p>
+      </div>
+
+      <div class="method-grid">
+        <article class="method-card">
+          <h3>Exported coefficients</h3>
+          <p>
+            The logistic-regression intercept, one-hot coefficients, imputer medians, and scaler parameters
+            come directly from <code>models/card_tier_model.joblib</code>.
+          </p>
+        </article>
+        <article class="method-card">
+          <h3>Identical preprocessing</h3>
+          <p>
+            The browser derives the same engineered fields — spend-to-fee ratio, spend per tenure, margin
+            proxy, premium tier flag — then applies median imputation, standard scaling, and unknown-category
+            handling.
+          </p>
+        </article>
+        <article class="method-card">
+          <h3>Honest evaluation</h3>
+          <p>
+            The threshold lab replays saved holdout predictions from the original evaluation split. It does
+            not tune on the holdout set or claim production readiness.
+          </p>
+        </article>
+      </div>
+
+      <div class="trust-strip">
+        <span><strong>Model:</strong> <span class="js-model-name">Logistic Regression</span></span>
+        <span><strong>Threshold:</strong> <span class="js-threshold">0.500</span></span>
+        <span><strong>Holdout ROC-AUC:</strong> <span class="js-roc">0.000</span></span>
+        <span><strong>Data:</strong> synthetic Amex-style portfolio</span>
+        <span><strong>Runtime:</strong> client-side JavaScript</span>
+      </div>
+
+      <div class="method-links">
+        <a href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">Repository ↗</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/docs/model_card.md" target="_blank" rel="noreferrer">Model card ↗</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/docs/deployment.md" target="_blank" rel="noreferrer">Deployment guide ↗</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/app.py" target="_blank" rel="noreferrer">Native Streamlit app ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>Built for Amex Premium Card Tier Migration &amp; Margin Optimization. Synthetic demo data — not real customer records. Client-side scorer is a portfolio demo, not a production decision system.</span>
+      <span class="footer-links">
+        <a href="index.html">Showcase</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/LICENSE" target="_blank" rel="noreferrer">MIT license</a>
+      </span>
+    </div>
+  </footer>
+</main>
+
+<script src="scorer_data.js"></script>
+<script src="scorer.js"></script>
+<script src="scorer_ui.js"></script>
+</body>
+</html>

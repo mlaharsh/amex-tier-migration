@@ -1,0 +1,26 @@
+[project]
+name = "amex-tier-migration"
+version = "0.1.0"
+description = "Amex Premium Card Tier Migration & Margin Optimization Model"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26,<3.0",
+    "pandas>=2.2,<3.0",
+    "scikit-learn>=1.5,<1.7",
+    "joblib>=1.3,<2.0",
+    "streamlit>=1.50,<2.0",
+    "plotly>=5.20,<7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amex Card Tier Migration & Margin Optimization</title>
+<meta name="description" content="Premium card tier migration and margin optimization model — logistic regression, tier economics, and a live client-side scorer.">
+<meta name="theme-color" content="#0B1F33">
+<meta property="og:title" content="Amex Card Tier Migration & Margin Optimization">
+<meta property="og:description" content="Which card tier maximizes margin for every customer? A reproducible migration model with a live client-side scorer.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mlaharsh.github.io/amex-tier-migration/">
+<meta property="og:image" content="https://mlaharsh.github.io/amex-tier-migration/assets/app_overview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://mlaharsh.github.io/amex-tier-migration/">
+<style>
+  :root {
+    --ink: #0B1F33;
+    --ink-soft: #14384B;
+    --teal: #0E7C86;
+    --teal-deep: #0A6570;
+    --mint: #2A9D8F;
+    --mint-light: #8ED7D2;
+    --coral: #E76F51;
+    --amber: #E9C46A;
+    --orange: #F4A261;
+    --cream: #F7F5F0;
+    --paper: #FFFFFF;
+    --muted: #61717B;
+    --muted-dark: #4B5E69;
+    --line: #E1E6E9;
+    --line-dark: #C7D0D4;
+    --max: 1180px;
+    --shadow: 0 18px 50px rgba(11, 31, 51, 0.08);
+    --shadow-soft: 0 8px 24px rgba(11, 31, 51, 0.05);
+    --font: "Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 92% 2%, rgba(42, 157, 143, 0.08), transparent 28rem), var(--cream);
+    color: var(--ink);
+    font-family: var(--font);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: rgba(42, 157, 143, 0.24); }
+  :focus-visible { outline: 3px solid rgba(14, 124, 134, 0.42); outline-offset: 3px; }
+  .wrap { width: min(var(--max), calc(100% - 48px)); margin-inline: auto; }
+  .skip {
+    position: absolute; left: 16px; top: -100px; z-index: 100;
+    background: var(--paper); color: var(--ink); padding: 10px 16px;
+    border-radius: 8px; text-decoration: none; font-weight: 700;
+    box-shadow: var(--shadow); transition: top 0.2s ease;
+  }
+  .skip:focus { top: 14px; }
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(247, 245, 240, 0.92);
+    border-bottom: 1px solid rgba(11, 31, 51, 0.08);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .header-inner { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 750; letter-spacing: -0.02em; font-size: 1rem; white-space: nowrap; }
+  .brand-mark { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; background: var(--ink); color: var(--mint-light); font-size: 0.88rem; line-height: 1; }
+  .nav { display: flex; align-items: center; gap: 24px; font-size: 0.82rem; font-weight: 600; }
+  .nav a { color: #53636c; transition: color 0.18s ease; }
+  .nav a:hover, .nav a:focus-visible { color: var(--teal); }
+  .nav-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--ink); color: #ffffff !important; border-radius: 999px;
+    padding: 9px 15px; transition: background 0.18s ease;
+  }
+  .nav-cta:hover { background: var(--teal); }
+  .hero {
+    position: relative; overflow: hidden; background: #081828;
+    color: #ffffff; padding: 72px 0 64px;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(145deg, #081828 0%, #0B1F33 54%, #0D3443 100%);
+    pointer-events: none;
+  }
+  .hero-grid { position: relative; display: grid; grid-template-columns: 1.03fr 0.97fr; gap: 56px; align-items: center; padding-bottom: 54px; }
+  .hero-copy { animation: rise 0.7s ease both; }
+  .eyebrow { margin: 0 0 14px; color: var(--teal); font-size: 0.7rem; font-weight: 750; letter-spacing: 0.16em; text-transform: uppercase; }
+  .eyebrow-light { color: var(--mint-light); }
+  .hero h1 { max-width: 760px; margin: 0 0 22px; font-size: clamp(2.55rem, 4.7vw, 4.15rem); font-weight: 760; line-height: 1.01; letter-spacing: -0.052em; color: #ffffff; }
+  .h1-accent { color: var(--mint-light); }
+  .hero-lead { max-width: 620px; margin: 0; color: #c8dce3; font-size: 1.02rem; line-height: 1.68; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 27px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 43px; padding: 10px 18px; border: 1px solid transparent;
+    border-radius: 10px; font-family: var(--font); font-size: 0.84rem;
+    font-weight: 700; line-height: 1.2; text-decoration: none; cursor: pointer;
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--mint); color: #ffffff; }
+  .btn-primary:hover { background: #238779; }
+  .btn-ghost { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.18); color: #ffffff; }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
+  .hero-visual { animation: rise 0.8s 0.08s ease both; }
+  .hero-panel {
+    position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px; background: rgba(9, 28, 43, 0.84);
+    box-shadow: 0 34px 90px rgba(0, 0, 0, 0.35);
+  }
+  .hero-panel-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 21px 0; }
+  .hero-panel-label { margin: 0; color: #8eb4c2; font-size: 0.67rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
+  .live-chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px;
+    border: 1px solid rgba(142, 215, 210, 0.28); border-radius: 999px;
+    background: rgba(42, 157, 143, 0.12); color: #c7efeb; font-size: 0.66rem;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .hero-metric { position: relative; padding: 18px 21px 10px; }
+  .hero-metric-value { display: block; color: #ffffff; font-size: clamp(2rem, 3.4vw, 2.8rem); font-weight: 760; line-height: 1; letter-spacing: -0.05em; }
+  .hero-metric-label { display: block; margin-top: 8px; color: #9db9c5; font-size: 0.79rem; }
+  .hero-mini-grid {
+    position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px;
+    margin: 20px 21px 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px; background: rgba(255, 255, 255, 0.08);
+  }
+  .hero-mini { padding: 12px 13px; background: rgba(8, 24, 38, 0.76); }
+  .hero-mini span { display: block; color: #7fa4b3; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+  .hero-mini strong { display: block; margin-top: 4px; color: #f3fbfa; font-size: 1.02rem; font-weight: 700; letter-spacing: -0.02em; }
+  .hero-panel-foot {
+    position: relative; margin: 15px 21px 19px; color: #87a7b4; font-size: 0.72rem; line-height: 1.5;
+  }
+  .hero-panel-foot strong { color: #dcecef; }
+  .section { padding: 68px 0; }
+  .section-tinted {
+    background: linear-gradient(180deg, rgba(240, 237, 230, 0.66), rgba(240, 237, 230, 0.38)), var(--cream);
+    border-top: 1px solid rgba(11, 31, 51, 0.05); border-bottom: 1px solid rgba(11, 31, 51, 0.05);
+  }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 36px; margin-bottom: 27px; }
+  .section-head h2 { margin: 0; font-size: clamp(1.75rem, 2.7vw, 2.45rem); line-height: 1.1; letter-spacing: -0.04em; }
+  .section-lead { max-width: 510px; margin: 0 0 2px; color: var(--muted); font-size: 0.9rem; line-height: 1.62; }
+  .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 24px; margin: 4px 0 28px; border-top: 1px solid #DCE2E4; border-bottom: 1px solid #DCE2E4; }
+  .feature { display: flex; gap: 12px; padding: 20px 0; }
+  .feature + .feature { padding-left: 24px; border-left: 1px solid #E2E7E8; }
+  .feature-num { flex: 0 0 auto; color: var(--teal); font-size: 0.66rem; font-weight: 750; letter-spacing: 0.1em; padding-top: 3px; }
+  .feature h3 { margin: 0 0 5px; font-size: 0.88rem; line-height: 1.25; letter-spacing: -0.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: 0.77rem; line-height: 1.55; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .metric-card { padding: 22px 22px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); box-shadow: 0 8px 22px rgba(11, 31, 51, 0.03); }
+  .metric-label { color: var(--muted); font-size: 0.62rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; }
+  .metric-value { color: var(--ink); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; margin-top: 6px; }
+  .metric-detail { color: var(--muted); font-size: 0.7rem; margin-top: 4px; }
+  .shot { margin-bottom: 24px; }
+  .shot img { border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+  .shot figcaption { margin-top: 8px; }
+  .shot-label { display: block; color: var(--teal); font-size: 0.65rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+  .shot figcaption p { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.55; }
+  .live-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 28px;
+    margin: 0 0 28px; padding: 22px 24px; border-radius: 16px;
+    background: linear-gradient(135deg, #0B1F33 0%, #103746 100%);
+    color: #FFFFFF; box-shadow: 0 18px 40px rgba(11, 31, 51, 0.14);
+  }
+  .live-pill { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 9px; color: var(--mint-light); font-size: 0.64rem; font-weight: 750; letter-spacing: 0.13em; text-transform: uppercase; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint-light); box-shadow: 0 0 0 4px rgba(142, 215, 210, 0.12); }
+  .live-banner h3 { margin: 0 0 6px; font-size: 1.18rem; line-height: 1.2; letter-spacing: -0.02em; }
+  .live-banner p:last-child { margin: 0; color: #BFD8DF; font-size: 0.79rem; line-height: 1.6; }
+  .live-banner p strong { color: #FFFFFF; font-weight: 650; }
+  .footer { padding: 0 0 32px; color: var(--muted); font-size: 0.72rem; }
+  .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+  .footer a { color: var(--muted-dark); text-decoration: none; }
+  .footer a:hover { color: var(--teal-deep); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 1000px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 34px; padding-bottom: 46px; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+    .feature:nth-child(3) { border-left: 0; padding-left: 0; border-top: 1px solid #E2E7E8; }
+    .feature:nth-child(4) { border-top: 1px solid #E2E7E8; }
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 760px) {
+    .wrap { width: min(var(--max), calc(100% - 32px)); }
+    .nav { gap: 0; }
+    .nav a:not(.nav-cta) { display: none; }
+    .site-header { position: relative; }
+    .hero { padding-top: 48px; }
+    .hero h1 { font-size: clamp(2.55rem, 11vw, 3.65rem); }
+    .stat-strip, .feature-grid, .metric-grid { grid-template-columns: 1fr; }
+    .feature, .feature:nth-child(3), .feature:nth-child(4) { padding: 17px 0; border-left: 0; border-top: 1px solid #E2E7E8; }
+    .live-banner { align-items: flex-start; flex-direction: column; gap: 18px; padding: 20px 18px; }
+    .footer-inner { align-items: flex-start; flex-direction: column; gap: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="Amex Tier Migration home">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span>Amex Tier Migration</span>
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#finding">The finding</a>
+      <a href="#workbench">Workbench</a>
+      <a href="#evaluation">Evaluation</a>
+      <a href="#method">Method</a>
+      <a href="#limits">Limits</a>
+      <a class="nav-cta" href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      <a class="nav-cta" href="scorer.html">Live scorer <span aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow eyebrow-light">Premium card portfolio · tier migration & margin</p>
+        <h1>Which card tier <span class="h1-accent">maximizes margin</span> for every customer?</h1>
+        <p class="hero-lead">
+          A reproducible migration model built on a synthetic Amex-style premium-card portfolio.
+          It scores churn risk and expected annual margin for every tier — No-Fee through Centurion —
+          and recommends upsell, maintain, downsell, or retention.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="scorer.html">Try the live scorer <span aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-note">Live client-side scorer · logistic regression · threshold tuned out-of-fold · one-time holdout evaluation</p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-panel">
+          <div class="hero-panel-top">
+            <p class="hero-panel-label">Portfolio snapshot</p>
+            <span class="live-chip">Model live</span>
+          </div>
+          <div class="hero-metric">
+            <span class="hero-metric-value">25k <span style="font-size:0.42em;font-weight:600;letter-spacing:-0.01em;color:#9db9c5;">customers</span></span>
+            <span class="hero-metric-label">synthetic premium-card portfolio</span>
+          </div>
+          <div class="hero-mini-grid">
+            <div class="hero-mini"><span>Tiers</span><strong>5</strong></div>
+            <div class="hero-mini"><span>Features</span><strong>26</strong></div>
+            <div class="hero-mini"><span>Holdout ROC-AUC</span><strong>~0.82</strong></div>
+            <div class="hero-mini"><span>Margin tiers scored</span><strong>5 per customer</strong></div>
+          </div>
+          <p class="hero-panel-foot">
+            The browser scorer runs exported logistic-regression coefficients client-side:
+            no login, no server, no customer data leaves the device.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="finding">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <p class="eyebrow">01 · What the data says</p>
+          <h2>Margin hides inside the tier ladder.</h2>
+        </div>
+        <p class="section-lead">
+          A No-Fee customer with high spend may be worth more on Platinum. A Platinum customer
+          with rising delinquency may be worth retaining on Gold. The model makes that trade-off
+          explicit per customer.
+        </p>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Portfolio</div>
+          <div class="metric-value">25,000</div>
+          <div class="metric-detail">synthetic premium-card customers</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Tiers</div>
+          <div class="metric-value">5</div>
+          <div class="metric-detail">No-Fee → Silver → Gold → Platinum → Centurion</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Features</div>
+          <div class="metric-value">26</div>
+          <div class="metric-detail">spend, fees, risk, engagement, demographics</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Model</div>
+          <div class="metric-value">Logistic regression</div>
+          <div class="metric-detail">churn propensity + tier margin</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tinted" id="workbench">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <p class="eyebrow">02 · The workbench</p>
+          <h2>A score is not a strategy.<br>This is the workbench around it.</h2>
+        </div>
+        <p class="section-lead">
+          The Streamlit app turns the model into six linked surfaces: overview, single-customer tier
+          scorer, batch migration, margin optimization, model performance, and method notes. The public
+          browser scorer below is the same fitted model exported to JavaScript.
+        </p>
+      </div>
+      <div class="live-banner">
+        <div>
+          <p class="live-pill"><span class="live-dot" aria-hidden="true"></span>Live · runs in your browser</p>
+          <h3>Score a customer before you read the rest.</h3>
+          <p>
+            The public scorer runs the <strong>exported logistic-regression coefficients</strong> and the
+            same preprocessing client-side: single accounts, the holdout threshold lab, and CSV batch
+            scoring. No login and no server. The Streamlit workbench is the full native app.
+          </p>
+        </div>
+        <a class="btn btn-primary" href="scorer.html">Open the live scorer <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="feature-grid">
+        <article class="feature">
+          <span class="feature-num">01</span>
+          <div>
+            <h3>Score a single account</h3>
+            <p>Churn probability, risk tier, recommended tier, margin lift, and migration priority update live.</p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="feature-num">02</span>
+          <div>
+            <h3>Work a portfolio</h3>
+            <p>Upload a CSV, validate rows, score every customer, and download a ranked migration list.</p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="feature-num">03</span>
+          <div>
+            <h3>Optimize margin</h3>
+            <p>Simulate fee and interest assumptions to see portfolio-level margin opportunity.</p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="feature-num">04</span>
+          <div>
+            <h3>Method & limits</h3>
+            <p>Model card, data dictionary, reproduction steps, and responsible-use notes beside the scores.</p>
+          </div>
+        </article>
+      </div>
+      <div class="shot">
+        <img src="assets/app_overview.png" width="1440" height="1100" loading="lazy" alt="Streamlit workbench overview page showing portfolio KPIs and tier distribution.">
+        <figcaption>
+          <span class="shot-label">01 / Workbench overview</span>
+          <p>Portfolio KPIs, tier distribution, and navigation to the tier scorer and model performance pages.</p>
+        </figcaption>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="evaluation">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <p class="eyebrow">03 · Evaluation</p>
+          <h2>Every number is regenerated, not hand-typed.</h2>
+        </div>
+        <p class="section-lead">
+          Logistic regression is compared against a 5-fold stratified CV. The threshold is tuned on
+          out-of-fold training predictions, then evaluated once on a holdout set.
+        </p>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Holdout ROC-AUC</div>
+          <div class="metric-value">~0.82</div>
+          <div class="metric-detail">holdout discrimination</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Threshold</div>
+          <div class="metric-value">tuned</div>
+          <div class="metric-detail">maximizes F1 on out-of-fold predictions</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Policy</div>
+          <div class="metric-value">Margin-aware</div>
+          <div class="metric-detail">recommends optimal tier per customer</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Replayable</div>
+          <div class="metric-value">Holdout lab</div>
+          <div class="metric-detail">threshold slider in the browser scorer</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="method">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <p class="eyebrow">04 · Method</p>
+          <h2>The same model, exported.</h2>
+        </div>
+        <p class="section-lead">
+          The browser scorer is a client-side implementation of the trained pipeline, generated by
+          <code>python -m card.browser_export</code>. The Streamlit workbench remains the full native reference.
+        </p>
+      </div>
+      <div class="method-grid">
+        <article class="method-card">
+          <h3>Exported coefficients</h3>
+          <p>The logistic-regression intercept, one-hot coefficients, imputer medians, and scaler parameters come directly from <code>models/card_tier_model.joblib</code>.</p>
+        </article>
+        <article class="method-card">
+          <h3>Margin economics</h3>
+          <p>Annual margin per tier = (fee + interchange + interest) − (rewards + service + expected loss). The optimal tier maximizes risk-adjusted margin.</p>
+        </article>
+        <article class="method-card">
+          <h3>Honest evaluation</h3>
+          <p>The threshold lab replays saved holdout predictions. It does not tune on the holdout set or claim production readiness.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tinted" id="limits">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <p class="eyebrow">05 · Limits</p>
+          <h2>Where this should not be used.</h2>
+        </div>
+        <p class="section-lead">
+          Synthetic data, directional margins, no causal claims. Read the model card before any customer-facing use.
+        </p>
+      </div>
+      <ul style="color:var(--muted); font-size:0.85rem; line-height:1.7; max-width:620px;">
+        <li><strong>Synthetic data.</strong> This project uses a generated portfolio. Replace <code>data/raw/card_portfolio.csv</code> with real customer data before production use.</li>
+        <li><strong>Directional margins.</strong> Annual margin estimates are illustrative, not exact P&L.</li>
+        <li><strong>No causal claims.</strong> Recommending a tier migration does not guarantee margin improvement.</li>
+        <li><strong>Fairness review required.</strong> Tier, income, credit score, and demographics should be audited before customer-facing use.</li>
+        <li><strong>Not for underwriting.</strong> Do not use this model for credit decisions, pricing, or eligibility.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <strong>Amex Card Tier Migration &amp; Margin Optimization</strong> · portfolio project.<br>
+        Built by MLA Harsh. Data: synthetic Amex-style portfolio (demo only). Showcase and client-side scorer deployed with GitHub Pages.
+      </div>
+      <div class="footer-links">
+        <a href="scorer.html">Live scorer</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/docs/model_card.md" target="_blank" rel="noreferrer">Model card</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/docs/deployment.md" target="_blank" rel="noreferrer">Deployment</a>
+        <a href="https://github.com/mlaharsh/amex-tier-migration/blob/master/LICENSE" target="_blank" rel="noreferrer">MIT license</a>
+      </div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Keep generated text artifacts byte-stable across platforms. The browser
+# scorer's freshness check compares docs/scorer_data.js exactly.
+* text=auto eol=lf
+*.joblib binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ipynb text eol=lf
