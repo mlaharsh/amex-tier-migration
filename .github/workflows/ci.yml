@@ -56,8 +56,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-      - name: Generate data and train (needed for scorer_data freshness)
-        run: python -m card.train --generate-data --no-figures
       - name: Check generated browser data is current
         run: python -m card.browser_export --check
       - name: Check JavaScript syntax
