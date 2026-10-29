@@ -28,8 +28,12 @@ The model then recommends an action: **upsell**, **maintain**, **downsell**, **r
 | Portfolio | 25,000 synthetic premium-card customers |
 | Selected model | Logistic regression |
 | Selection rule | Best 5-fold stratified CV ROC-AUC |
-| Holdout ROC-AUC | ~0.82 |
-| Decision threshold | tuned on out-of-fold predictions |
+| Holdout ROC-AUC | 0.689 |
+| Holdout PR-AUC | 0.605 |
+| Decision threshold | 0.39, tuned on out-of-fold predictions |
+| Precision / recall at 0.39 | 48.7% / 86.7% |
+| Brier score | 0.222 |
+| Cross-validation ROC-AUC | 0.685 ± 0.009 (5-fold stratified) |
 | Tiers | No-Fee → Silver → Gold → Platinum → Centurion |
 
 ## Why this project

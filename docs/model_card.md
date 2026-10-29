@@ -27,11 +27,15 @@
 
 | Metric | Value |
 | --- | --- |
-| ROC-AUC | ~0.82 |
-| Precision | ~0.60 |
-| Recall | ~0.70 |
-| F1 | ~0.65 |
-| Brier score | ~0.17 |
+| ROC-AUC | 0.689 |
+| PR-AUC | 0.605 |
+| Precision | 0.487 |
+| Recall | 0.867 |
+| F1 | 0.624 |
+| Brier score | 0.222 |
+| Decision threshold | 0.39 |
+
+Cross-validation ROC-AUC is 0.685 ± 0.009 across 5 stratified folds. The holdout contains 5,000 customers (41.4% churn rate).
 
 Exact committed values are in `models/metrics.json` and `reports/evaluation/test_predictions.csv`.
 

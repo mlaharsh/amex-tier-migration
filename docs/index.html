@@ -10,7 +10,7 @@
 <meta property="og:description" content="Which card tier maximizes margin for every customer? A reproducible migration model with a live client-side scorer.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mlaharsh.github.io/amex-tier-migration/">
-<meta property="og:image" content="https://mlaharsh.github.io/amex-tier-migration/assets/app_overview.png">
+<meta property="og:image" content="https://mlaharsh.github.io/amex-tier-migration/assets/model_performance.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://mlaharsh.github.io/amex-tier-migration/">
 <style>
@@ -67,8 +67,8 @@
   .header-inner { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
   .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 750; letter-spacing: -0.02em; font-size: 1rem; white-space: nowrap; }
   .brand-mark { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; background: var(--ink); color: var(--mint-light); font-size: 0.88rem; line-height: 1; }
-  .nav { display: flex; align-items: center; gap: 24px; font-size: 0.82rem; font-weight: 600; }
-  .nav a { color: #53636c; transition: color 0.18s ease; }
+  .nav { display: flex; align-items: center; gap: 24px; flex-shrink: 0; font-size: 0.82rem; font-weight: 600; }
+  .nav a { color: #53636c; white-space: nowrap; transition: color 0.18s ease; }
   .nav a:hover, .nav a:focus-visible { color: var(--teal); }
   .nav-cta {
     display: inline-flex; align-items: center; gap: 6px;
@@ -154,10 +154,13 @@
   .metric-value { color: var(--ink); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; margin-top: 6px; }
   .metric-detail { color: var(--muted); font-size: 0.7rem; margin-top: 4px; }
   .shot { margin-bottom: 24px; }
-  .shot img { border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+  .shot img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
   .shot figcaption { margin-top: 8px; }
   .shot-label { display: block; color: var(--teal); font-size: 0.65rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
   .shot figcaption p { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.55; }
+  .shot figcaption code { overflow-wrap: anywhere; }
+  .metric-foot { margin: 18px 0 22px; color: var(--muted); font-size: 0.84rem; line-height: 1.65; }
+  .metric-foot strong { color: var(--ink); }
   .live-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 28px;
     margin: 0 0 28px; padding: 22px 24px; border-radius: 16px;
@@ -176,6 +179,10 @@
   .footer a:hover { color: var(--teal-deep); }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 1100px) {
+    .nav { gap: 18px; }
+    .nav a:not(.nav-cta) { display: none; }
+  }
   @media (max-width: 1000px) {
     .hero-grid { grid-template-columns: 1fr; gap: 34px; padding-bottom: 46px; }
     .feature-grid { grid-template-columns: 1fr 1fr; }
@@ -187,6 +194,10 @@
     .wrap { width: min(var(--max), calc(100% - 32px)); }
     .nav { gap: 0; }
     .nav a:not(.nav-cta) { display: none; }
+    .header-inner { gap: 12px; }
+    .brand { font-size: 0.92rem; gap: 8px; }
+    .brand-mark { width: 27px; height: 27px; }
+    .nav-cta { padding: 8px 11px; }
     .site-header { position: relative; }
     .hero { padding-top: 48px; }
     .hero h1 { font-size: clamp(2.55rem, 11vw, 3.65rem); }
@@ -194,6 +205,13 @@
     .feature, .feature:nth-child(3), .feature:nth-child(4) { padding: 17px 0; border-left: 0; border-top: 1px solid #E2E7E8; }
     .live-banner { align-items: flex-start; flex-direction: column; gap: 18px; padding: 20px 18px; }
     .footer-inner { align-items: flex-start; flex-direction: column; gap: 12px; }
+  }
+  @media (max-width: 520px) {
+    .nav-github { display: none; }
+    .header-inner { gap: 8px; }
+    .brand { font-size: 0.84rem; }
+    .brand-mark { width: 25px; height: 25px; font-size: 0.78rem; }
+    .nav-cta { padding: 8px 9px; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -216,7 +234,7 @@
       <a href="#evaluation">Evaluation</a>
       <a href="#method">Method</a>
       <a href="#limits">Limits</a>
-      <a class="nav-cta" href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      <a class="nav-cta nav-github" href="https://github.com/mlaharsh/amex-tier-migration" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
       <a class="nav-cta" href="scorer.html">Live scorer <span aria-hidden="true">→</span></a>
     </nav>
   </div>
@@ -253,7 +271,7 @@
           <div class="hero-mini-grid">
             <div class="hero-mini"><span>Tiers</span><strong>5</strong></div>
             <div class="hero-mini"><span>Features</span><strong>26</strong></div>
-            <div class="hero-mini"><span>Holdout ROC-AUC</span><strong>~0.82</strong></div>
+            <div class="hero-mini"><span>Holdout ROC-AUC</span><strong>0.689</strong></div>
             <div class="hero-mini"><span>Margin tiers scored</span><strong>5 per customer</strong></div>
           </div>
           <p class="hero-panel-foot">
@@ -358,13 +376,6 @@
           </div>
         </article>
       </div>
-      <div class="shot">
-        <img src="assets/app_overview.png" width="1440" height="1100" loading="lazy" alt="Streamlit workbench overview page showing portfolio KPIs and tier distribution.">
-        <figcaption>
-          <span class="shot-label">01 / Workbench overview</span>
-          <p>Portfolio KPIs, tier distribution, and navigation to the tier scorer and model performance pages.</p>
-        </figcaption>
-      </div>
     </div>
   </section>
 
@@ -383,8 +394,8 @@
       <div class="metric-grid">
         <div class="metric-card">
           <div class="metric-label">Holdout ROC-AUC</div>
-          <div class="metric-value">~0.82</div>
-          <div class="metric-detail">holdout discrimination</div>
+          <div class="metric-value">0.689</div>
+          <div class="metric-detail">5,000-customer holdout · PR-AUC 0.605</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Threshold</div>
@@ -402,6 +413,18 @@
           <div class="metric-detail">threshold slider in the browser scorer</div>
         </div>
       </div>
+      <p class="metric-foot">
+        At the deployed <strong>0.39</strong> threshold: <strong>48.7% precision</strong> ·
+        <strong>86.7% recall</strong> · F1 0.624 · Brier 0.222. The threshold is tuned on
+        out-of-fold predictions, not on the holdout.
+      </p>
+      <figure class="shot">
+        <img src="assets/model_performance.png" width="2000" height="640" loading="lazy" alt="Holdout ROC curve with AUC 0.689, precision-recall curve with average precision 0.605, and calibration curve with Brier score 0.222 for the Amex tier migration model.">
+        <figcaption>
+          <span class="shot-label">01 / Holdout evaluation</span>
+          <p>ROC, precision-recall, and calibration for the 5,000-customer holdout. Regenerate from <code>reports/evaluation/test_predictions.csv</code> with <code>python -m card.train</code>.</p>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
