@@ -355,6 +355,33 @@
     }
   }
 
+  /* Form interactions ---------------------------------------------------- */
+  function setupForm() {
+    const body = $("#formBody");
+    if (body) {
+      let timer = 0;
+      const schedule = () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(updateScore, 120);
+      };
+      body.addEventListener("input", schedule);
+      body.addEventListener("change", schedule);
+    }
+    const presets = [
+      ["#exampleGold", "gold-upsell"],
+      ["#examplePlatinum", "platinum-retention"],
+      ["#exampleNoFee", "nofee-upsell"],
+    ];
+    presets.forEach(([selector, id]) => {
+      const button = $(selector);
+      if (button) button.addEventListener("click", () => loadExample(id));
+    });
+    const reset = $("#resetForm");
+    if (reset) {
+      reset.addEventListener("click", () => loadExample("gold-upsell"));
+    }
+  }
+
   /* Threshold lab ------------------------------------------------------- */
   function setupThreshold() {
     const slider = $("#thresholdSlider");
@@ -489,6 +516,7 @@
     }
     renderForm();
     hydrateMetadata();
+    setupForm();
     setupThreshold();
     setupBatch();
     loadExample("gold-upsell");
